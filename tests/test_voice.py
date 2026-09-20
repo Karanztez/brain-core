@@ -46,6 +46,12 @@ class TestBrainCoreVoice(unittest.TestCase):
         self.assertNotIn("ทำตาโต", cleaned)
         self.assertEqual(cleaned, "วากุวากุ! หนูเอมิเองค่ะ")
 
+        # Test punctuation, emojis, and symbols fallback to prevent NoAudioReceived
+        self.assertEqual(clean_text_for_speech("...", persona="emi"), "วากุวากุ!")
+        self.assertEqual(clean_text_for_speech("(คิดในใจ) ... ???", persona="emi"), "วากุวากุ!")
+        self.assertEqual(clean_text_for_speech("✨💖🥰", persona="emi"), "วากุวากุ!")
+        self.assertEqual(clean_text_for_speech("---", persona="bo"), "ครับผม")
+
     def test_voice_profiles(self):
         self.assertIn("emi", VOICE_PROFILES)
         self.assertIn("bo", VOICE_PROFILES)
