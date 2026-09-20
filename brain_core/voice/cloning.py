@@ -40,38 +40,119 @@ ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "")  # Anya Forger Voice ID
 
 
+THAI_DIGITS = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"]
+THAI_UNITS = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"]
+
+
+def int_to_thai_text(n: int) -> str:
+    """Convert an integer up to billions to Thai text words."""
+    if n == 0:
+        return "ศูนย์"
+    if n < 0:
+        return "ลบ" + int_to_thai_text(-n)
+
+    if n >= 10_000_000:
+        millions = n // 1_000_000
+        rem = n % 1_000_000
+        res = int_to_thai_text(millions) + "ล้าน"
+        if rem > 0:
+            res += int_to_thai_text(rem)
+        return res
+
+    s = str(n)
+    length = len(s)
+    result = []
+
+    for i, ch in enumerate(s):
+        digit = int(ch)
+        pos = length - i - 1
+        if digit == 0:
+            continue
+
+        unit = THAI_UNITS[pos]
+        if pos == 1:
+            if digit == 1:
+                result.append("สิบ")
+            elif digit == 2:
+                result.append("ยี่สิบ")
+            else:
+                result.append(THAI_DIGITS[digit] + "สิบ")
+        elif pos == 0:
+            if digit == 1 and length > 1:
+                result.append("เอ็ด")
+            else:
+                result.append(THAI_DIGITS[digit])
+        else:
+            result.append(THAI_DIGITS[digit] + unit)
+
+    return "".join(result)
+
+
+def convert_numbers_in_text(text: str) -> str:
+    """Convert numbers, decimals, and percentages to spoken Thai text."""
+    # 1. Clean commas in numbers (e.g. 1,000 -> 1000)
+    text = re.sub(r"(\d),(\d)", r"\1\2", text)
+    # 2. Percentages (e.g. 100% -> 100 เปอร์เซ็นต์)
+    text = re.sub(r"(\d+)%", r"\1 เปอร์เซ็นต์", text)
+
+    # 3. Decimals (e.g. 10.5 -> สิบจุดห้า)
+    def replace_decimal(match):
+        integer_part = match.group(1)
+        decimal_part = match.group(2)
+        int_thai = int_to_thai_text(int(integer_part))
+        dec_thai = "".join(THAI_DIGITS[int(d)] for d in decimal_part)
+        return f" {int_thai}จุด{dec_thai} "
+
+    text = re.sub(r"\b(\d+)\.(\d+)\b", replace_decimal, text)
+
+    # 4. Standard integers (e.g. 100 -> หนึ่งร้อย)
+    def replace_int(match):
+        num = int(match.group(0))
+        return f" {int_to_thai_text(num)} "
+
+    text = re.sub(r"\b\d+\b", replace_int, text)
+    return text
+
+
 def prepare_thai_text_for_fish_audio(text: str) -> str:
-    """Optimize Thai text phonetics, clause pacing, and vowel clarity for Fish Audio S2.1."""
+    """Optimize Thai text phonetics, clause pacing, numbers, and vowel clarity for Fish Audio S2.1."""
     if not text:
         return text
 
-    # 1. Expand maiyamok (ๆ) with clear separation so Fish Audio doesn't skip or slur the repetition
+    # 1. Expand maiyamok (ๆ) with clear separation
     cleaned = re.sub(r"(\S)ๆ", r"\1 \1", text)
 
-    # 2. Fix "เป็นไง" / "ยังไง" / "ไง" / "เป็นไหง" to phonetic "งัย"
+    # 2. Convert all numbers to spoken Thai text (e.g. 100 -> หนึ่งร้อย, 1,000 -> หนึ่งพัน)
+    cleaned = convert_numbers_in_text(cleaned)
+
+    # 3. Fix "เป็นไง" / "ยังไง" / "ไง" / "เป็นไหง" to phonetic "งัย"
     # Eliminates the unwanted "ห นำ" (ไหง/เหน่อ) sound in Fish Audio
     cleaned = re.sub(r"เป็น\s*ไหง", "เป็นงัย", cleaned)
     cleaned = re.sub(r"เป็น\s*ไง", "เป็นงัย", cleaned)
     cleaned = re.sub(r"ยัง\s*ไง", "ยังงัย", cleaned)
     cleaned = re.sub(r"(?<=\s)ไง(?=[\s!?,\.คะครับจ้า]|$)", "งัย", cleaned)
 
-    # 3. Convert question particle "ไหม" / "มั้ย" to high-tone "มั๊ย"
+    # 4. Ensure clear syllable boundaries around "เหมือน" so leading 'ห' is always articulated (never swallowed as 'เมือน')
+    cleaned = re.sub(r"([^\s])เหมือน", r"\1 เหมือน", cleaned)
+    cleaned = re.sub(r"เหมือน([^\s])", r"เหมือน \1", cleaned)
+
+    # 5. Convert question particle "ไหม" / "มั้ย" to high-tone "มั๊ย"
     # Prevents Fish Audio from reading "มั้ย" as slow formal rising "ไหม"
     cleaned = re.sub(r"(?<=[\sก-๙])ไหม(?=[\s!?,\.คะครับจ้า]|$)(?![่-๋์])", "มั๊ย", cleaned)
     cleaned = re.sub(r"(?<=[\sก-๙])มั้ย(?=[\s!?,\.คะครับจ้า]|$)(?![่-๋์])", "มั๊ย", cleaned)
     cleaned = re.sub(r"^ไหม(?=[\s!?,\.คะครับจ้า]|$)(?![่-๋์])", "มั๊ย", cleaned)
     cleaned = re.sub(r"^มั้ย(?=[\s!?,\.คะครับจ้า]|$)(?![่-๋์])", "มั๊ย", cleaned)
 
-    # 4. Ensure separation before "มั๊ย" if directly glued to preceding word
+    # 6. Ensure separation before "มั๊ย" if directly glued to preceding word
     cleaned = re.sub(r"([^\s])มั๊ย", r"\1 มั๊ย", cleaned)
 
-    # 5. Ensure natural pauses before standard Thai particles (นะคะ, ค่ะ, ครับ, จ้า, นะ)
+    # 7. Ensure natural pauses before standard Thai particles (นะคะ, ค่ะ, ครับ, จ้า, นะ)
     cleaned = re.sub(r"([^\s])(นะคะ|นะค่ะ|ค่ะ|ครับ|จ้า|นะจ๊ะ|นะคะ!|ค่ะ!|ครับ!)", r"\1 \2", cleaned)
 
-    # 6. Ensure natural pauses around punctuation and sentence boundaries
+    # 8. Ensure natural pauses around punctuation and sentence boundaries
     cleaned = re.sub(r"([!?,])(?=[^\s])", r"\1 ", cleaned)
 
-    # 7. Normalize whitespace
+    # 9. Normalize whitespace
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
 
