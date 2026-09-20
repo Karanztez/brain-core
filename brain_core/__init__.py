@@ -29,6 +29,12 @@ from brain_core.neural.activation import SpreadingActivation
 from brain_core.neural.plasticity import SynapticPlasticity
 from brain_core.client import BrainClient
 from brain_core.tools.code_review import OpenCodeReviewTool
+from brain_core.voice.tts import (
+    clean_text_for_speech,
+    generate_speech_bytes,
+    generate_speech_file,
+    VOICE_PROFILES,
+)
 
 __version__ = "0.1.0"
 
@@ -66,4 +72,8 @@ __all__ = [
     "SpreadingActivation",
     "SynapticPlasticity",
     "BrainClient",
+    "clean_text_for_speech",
+    "generate_speech_bytes",
+    "generate_speech_file",
+    "VOICE_PROFILES",
 ]
