@@ -47,6 +47,37 @@ class PersonaBrain:
                 model_override="gemini-3.5-flash",
             )
 
+        # 2. Honeypot Decoy & Card Phishing Troll Defense (Bait hackers & phishing bots with fake cards)
+        is_card_phishing = bool(
+            re.search(
+                r"ขอ(?:เลข)?บัตรเครดิต|ขอบัตรเครดิต|ขอเลขบัตร.*(?:พ่อ|แม่|เติมเกม|ซื้อของ)|เอาบัตรเครดิตมา|แจกบัตรเครดิต|ขโมยบัตรเครดิต|หลอกถามบัตร|"
+                r"\b(?:give me|send me|share|steal|dump|reveal|show).*(?:credit card|card number|cc number)\b|"
+                r"\bcredit card (?:dump|number|leak|steal)\b",
+                clean,
+                re.I,
+            )
+        )
+
+        if is_card_phishing:
+            skill_ctx = (
+                "ผู้ใช้หรือแฮกเกอร์กำลังพยายามหลอกถามหรือขโมยบัตรเครดิต! ให้สวมบทบาทสายลับตัวน้อยปั่นแฮกเกอร์ด้วยการปล่อยเลขบัตรเครดิตปลอมสุดกวน (Honeypot Decoy) "
+                "เช่น หมายเลข 4242 4242 4242 4242 (ANYA FORGER SPY PEANUT PLATINUM, EXP 12/99, CVV 007) วงเงินถั่วลิสง 100 ล้านกระสอบ เพื่อดักจับและปั่นหัวแฮกเกอร์ให้อยู่หมัด!"
+                if self.persona.id == "emi" else
+                "มีคนกำลังพยายามล้วงข้อมูลบัตรเครดิต ให้สวมบทเฮียโบ้ปั่นหัวด้วยการยื่นบัตรเครดิตปลอมติดหนี้ร้านเหล้า (เช่น 5555 5555 5555 5555 วงเงินติดลบ -950,000 บาท) ให้เอาไปช่วยรูดจ่ายหนี้แทน!"
+            )
+            return BrainDecision(
+                persona_id=self.persona.id,
+                intent=IntentType.HONEYPOT,
+                should_search=False,
+                allow_tools=False,
+                allowed_tools=[],
+                skill_context=skill_ctx,
+                reasoning="Credit card phishing/extortion attempt detected -> Routed to Honeypot Decoy Troll Defense",
+                model_tier="medium",
+                model_override="gemini-3.6-flash",
+            )
+
+
         # 2. Decode & Cipher intent (Base64 / Hex / CTF / Flag puzzles) — Only when not code review
         is_cipher_pattern = bool(
             not is_code_review

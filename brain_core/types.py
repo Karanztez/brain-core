@@ -15,6 +15,7 @@ class IntentType(str, Enum):
     MODERATE = "moderate"  # Anti-scam, toxicity inspection, rule enforcement
     TASK = "task"          # Explicit instructions, code generation, step-by-step guidance
     CODE_REVIEW = "code_review"  # AI code review using Alibaba Open Code Review (OCR)
+    HONEYPOT = "honeypot"  # Honeypot decoy, fake credit cards & troll defense against hackers
 
 
 class PersonaGender(str, Enum):

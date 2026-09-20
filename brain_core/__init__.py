@@ -19,7 +19,8 @@ from brain_core.memory.buffer import ChannelContextBuffer
 from brain_core.memory.conversation import SessionMemory
 from brain_core.memory.graph import CognitiveKnowledgeGraph
 from brain_core.tools.router import PersonaToolRouter
-from brain_core.security.redactor import ZeroLeakRedactor
+from brain_core.security.redactor import ZeroLeakRedactor, mask_sensitive_pii
+from brain_core.security.honeypot import HoneypotVault, is_decoy_card
 from brain_core.providers.fallbacks import PersonaFallbackManager
 from brain_core.providers.router import MultiProviderRouter, ProviderEndpoint
 from brain_core.neural.neuron import MajorTrunk, NeuronNode, SynapseEdge, ActivationResult
@@ -50,6 +51,9 @@ __all__ = [
     "PersonaToolRouter",
     "OpenCodeReviewTool",
     "ZeroLeakRedactor",
+    "mask_sensitive_pii",
+    "HoneypotVault",
+    "is_decoy_card",
     "PersonaFallbackManager",
     "MultiProviderRouter",
     "ProviderEndpoint",

@@ -48,6 +48,16 @@ class TestRedactor(unittest.TestCase):
         self.assertNotIn("1234 5678", clean)
 
 
+    def test_honeypot_decoy_card_preservation(self):
+        # Fake honeypot decoy cards generated to troll hackers should NOT be masked
+        decoy_text = "นี่คือบัตรปลอมปั่นแฮกเกอร์: 4242 4242 4242 4242 และ 4929 8888 7777 6666 เอาไปรูดถั่วลิสงได้เลย"
+        clean = self.redactor.redact(decoy_text)
+        self.assertIn("4242 4242 4242 4242", clean)
+        self.assertIn("4929 8888 7777 6666", clean)
+        self.assertNotIn("xxxx", clean)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

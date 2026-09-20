@@ -38,7 +38,7 @@ _DEFAULT_SCRUB_RULES: List[Tuple[re.Pattern, str]] = [
 
 
 def mask_sensitive_pii(text: str) -> str:
-    """Mask sensitive PII such as Thai National IDs, credit cards (excluding binary bitstreams), and phone numbers."""
+    """Mask sensitive PII such as Thai National IDs, credit cards (excluding binary bitstreams & decoy honeypot cards), and phone numbers."""
     if not text:
         return text
     result = str(text)
@@ -52,12 +52,16 @@ def mask_sensitive_pii(text: str) -> str:
 
     result = re.sub(r'\b[1-8]\d{12}\b', _mask_raw_id, result)
 
-    # 2. Credit Card Numbers (16 digits, excluding pure binary bitstreams)
+    # 2. Credit Card Numbers (16 digits, excluding pure binary bitstreams and intentional honeypot decoy cards)
     def _mask_cc(match):
         val = match.group(0)
         digits = re.sub(r"[-\s]", "", val)
         if set(digits).issubset({"0", "1"}):
             return val  # Don't mask binary bitstreams
+        # Check if this is an intentional decoy/honeypot test card for trolling hackers
+        from brain_core.security.honeypot import is_decoy_card
+        if is_decoy_card(digits):
+            return val
         return f"{digits[:4]}-xxxx-xxxx-{digits[-4:]}"
 
     result = re.sub(
@@ -73,6 +77,7 @@ def mask_sensitive_pii(text: str) -> str:
         result,
     )
     return result
+
 
 
 class ZeroLeakRedactor:
