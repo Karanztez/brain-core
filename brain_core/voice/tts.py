@@ -19,6 +19,8 @@ except ImportError:
     edge_tts = None
     HAS_EDGE_TTS = False
 
+from brain_core.voice.auto_install import get_edge_tts_module, ensure_voice_dependencies
+
 logger = logging.getLogger("BrainCore.Voice.TTS")
 
 # Voice Profile Presets
@@ -82,15 +84,16 @@ def clean_text_for_speech(text: str, persona: str = "emi") -> str:
 
 async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
     """Generate spoken MP3 audio bytes in-memory for audio attachments."""
-    if not HAS_EDGE_TTS:
-        raise RuntimeError("โมเดลแปลงเสียง edge-tts ยังไม่ได้ติดตั้ง กรุณารัน: pip install edge-tts")
+    tts_mod = edge_tts or get_edge_tts_module()
+    if not tts_mod:
+        raise RuntimeError("โมเดลแปลงเสียง edge-tts ยังไม่ได้ติดตั้ง และการติดตั้งอัตโนมัติไม่สำเร็จ กรุณารัน: pip install edge-tts")
 
     spoken_text = clean_text_for_speech(text, persona=persona)
     if not spoken_text:
         spoken_text = "สวัสดีค่ะพี่จ๋า เอมิอยู่นี่แล้วค่า" if persona == "emi" else "สวัสดีครับ มีอะไรให้เฮียช่วยครับ"
 
     profile = VOICE_PROFILES.get(persona.lower(), VOICE_PROFILES["emi"])
-    communicate = edge_tts.Communicate(
+    communicate = tts_mod.Communicate(
         text=spoken_text,
         voice=profile["voice"],
         pitch=profile["pitch"],
@@ -109,8 +112,9 @@ async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
 
 async def generate_speech_file(text: str, target_path: Optional[str] = None, persona: str = "emi") -> str:
     """Generate spoken MP3 audio file on disk for streaming / playback."""
-    if not HAS_EDGE_TTS:
-        raise RuntimeError("โมเดลแปลงเสียง edge-tts ยังไม่ได้ติดตั้ง กรุณารัน: pip install edge-tts")
+    tts_mod = edge_tts or get_edge_tts_module()
+    if not tts_mod:
+        raise RuntimeError("โมเดลแปลงเสียง edge-tts ยังไม่ได้ติดตั้ง และการติดตั้งอัตโนมัติไม่สำเร็จ กรุณารัน: pip install edge-tts")
 
     if not target_path:
         fd, target_path = tempfile.mkstemp(suffix=".mp3", prefix=f"tts_{persona}_")
@@ -121,7 +125,7 @@ async def generate_speech_file(text: str, target_path: Optional[str] = None, per
         spoken_text = "สวัสดีค่ะพี่จ๋า เอมิอยู่นี่แล้วค่า" if persona == "emi" else "สวัสดีครับ มีอะไรให้เฮียช่วยครับ"
 
     profile = VOICE_PROFILES.get(persona.lower(), VOICE_PROFILES["emi"])
-    communicate = edge_tts.Communicate(
+    communicate = tts_mod.Communicate(
         text=spoken_text,
         voice=profile["voice"],
         pitch=profile["pitch"],
