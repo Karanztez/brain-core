@@ -11,6 +11,17 @@ COPY pyproject.toml README.md requirements.txt ./
 COPY brain_core/ ./brain_core/
 COPY run_server.py ./
 
+# Install Node.js & Alibaba Open Code Review CLI (ocr)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    git \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g @alibaba-group/open-code-review \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install package with API dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir ".[api]"
