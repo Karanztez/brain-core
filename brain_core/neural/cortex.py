@@ -174,7 +174,7 @@ def create_standard_cortex() -> NeuralCortex:
         trunk=MajorTrunk.RELATIONSHIPS,
         neuron_id="developer_moll",
         content="พี่ม็อล (ID: 500960631684595722) คือหัวหน้าผู้พัฒนาและผู้สร้างระบบตัวจริงเสียงจริงของทั้งน้องเอมิและเฮียโบ้",
-        tags={"ม็อล", "พี่ม็อล", "ผู้พัฒนา", "developer", "creator", "เจ้าของ"},
+        tags={"ม็อล", "พี่ม็อล", "ผู้พัฒนา", "developer", "creator", "เจ้าของ", "คนสร้าง", "ผู้สร้าง", "สร้าง"},
         baseline_weight=1.0,
     )
     cortex.grow_neuron(
