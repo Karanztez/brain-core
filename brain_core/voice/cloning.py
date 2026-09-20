@@ -17,8 +17,7 @@ import re
 
 logger = logging.getLogger("BrainCore.Voice.Cloning")
 
-FISH_AUDIO_API_KEY = os.getenv("FISH_AUDIO_API_KEY", "sk-fish-lIn7Q1ZGjbI76W5lHGA0OM6RQKxSuRXDmAyDpiy5GKs")
-FISH_AUDIO_MODEL_ID = os.getenv("FISH_AUDIO_MODEL_ID", "c1c27a2227ad4d2c93e611a59c408284")  # Anya Forger Thai Voice Clone (Enhanced Clarity)
+FISH_AUDIO_MODEL_ID = os.getenv("FISH_AUDIO_MODEL_ID", "78fc6c9c1e2b4d68affaa2cca995da3e")  # Emi Snaptik Cute Thai (Clean Vowels & No Noise)
 FISH_AUDIO_MODEL = os.getenv("FISH_AUDIO_MODEL", "s2.1-pro-free")  # Free Tier S2.1 Pro Model
 
 # Concurrency limiter to strictly adhere to Fish Audio 5 concurrent requests limit (prevents 429 Too Many Requests)
