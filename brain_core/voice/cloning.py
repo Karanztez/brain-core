@@ -18,7 +18,7 @@ import re
 logger = logging.getLogger("BrainCore.Voice.Cloning")
 
 FISH_AUDIO_API_KEY = os.getenv("FISH_AUDIO_API_KEY", "sk-fish-lIn7Q1ZGjbI76W5lHGA0OM6RQKxSuRXDmAyDpiy5GKs")
-FISH_AUDIO_MODEL_ID = os.getenv("FISH_AUDIO_MODEL_ID", "f5ecc5a5f74b4ae49a9e8a041f0376a1")  # Anya Forger Thai Voice Clone
+FISH_AUDIO_MODEL_ID = os.getenv("FISH_AUDIO_MODEL_ID", "c1c27a2227ad4d2c93e611a59c408284")  # Anya Forger Thai Voice Clone (Enhanced Clarity)
 FISH_AUDIO_MODEL = os.getenv("FISH_AUDIO_MODEL", "s2.1-pro-free")  # Free Tier S2.1 Pro Model
 
 # Concurrency limiter to strictly adhere to Fish Audio 5 concurrent requests limit (prevents 429 Too Many Requests)
@@ -47,6 +47,8 @@ def prepare_thai_text_for_fish_audio(text: str) -> str:
         return text
     # Expand maiyamok (ๆ) with clear separation so Fish Audio doesn't skip or slur the repetition
     cleaned = re.sub(r"(\S)ๆ", r"\1 \1", text)
+    # Ensure natural pauses before standard Thai particles (นะคะ, ค่ะ, ครับ, จ้า, นะ, หรอ) for clear vowel separation
+    cleaned = re.sub(r"([^\s])(นะคะ|นะค่ะ|ค่ะ|ครับ|จ้า|นะจ๊ะ|นะคะ!|ค่ะ!|ครับ!)", r"\1 \2", cleaned)
     # Ensure natural pauses around punctuation and sentence boundaries
     cleaned = re.sub(r"([!?,])(?=[^\s])", r"\1 ", cleaned)
     # Normalize whitespace
