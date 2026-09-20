@@ -207,3 +207,13 @@ if HAS_FASTAPI:
         return default_cortex.export_state()
 else:
     app = None
+
+
+def main() -> None:
+    """Run the Brain-Core API server via uvicorn CLI entrypoint."""
+    import uvicorn
+    uvicorn.run("brain_core.api.server:app", host="0.0.0.0", port=8000, reload=False)
+
+
+if __name__ == "__main__":
+    main()
