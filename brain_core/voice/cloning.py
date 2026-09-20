@@ -60,15 +60,21 @@ async def generate_cloned_anya_speech(text: str) -> Optional[bytes]:
     model_id = os.getenv("FISH_AUDIO_MODEL_ID") or FISH_AUDIO_MODEL_ID
     model = os.getenv("FISH_AUDIO_MODEL") or FISH_AUDIO_MODEL
 
+    logger.info(f"🎙️ [VoiceCloning] Requesting Anya voice clone (key={api_key[:8]}... model_id={model_id[:8]}... model={model})")
+
     # 1. Try Fish Audio if configured (defaults to free tier model s2.1-pro-free)
     if api_key and model_id:
         try:
             audio = await _call_fish_audio(text, api_key, model_id, model=model)
             if audio:
-                logger.info(f"✨ Generated Anya voice via Fish Audio Clone (model: {model}, bytes: {len(audio)})")
+                logger.info(f"✨ [FishAudio] Successfully generated Anya voice ({len(audio)} bytes)")
                 return audio
+            else:
+                logger.warning("⚠️ [FishAudio] API returned empty audio")
         except Exception as e:
-            logger.warning(f"Fish Audio generation failed: {e}")
+            logger.error(f"❌ [FishAudio] Exception during generation: {e}", exc_info=True)
+    else:
+        logger.warning(f"⚠️ [VoiceCloning] Missing credentials: api_key={bool(api_key)}, model_id={bool(model_id)}")
 
     # 2. Try ElevenLabs if configured
     el_key = os.getenv("ELEVENLABS_API_KEY") or ELEVENLABS_API_KEY
