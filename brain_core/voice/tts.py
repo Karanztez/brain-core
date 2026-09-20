@@ -12,7 +12,12 @@ import re
 import tempfile
 from typing import Dict, Any, Optional
 
-import edge_tts
+try:
+    import edge_tts
+    HAS_EDGE_TTS = True
+except ImportError:
+    edge_tts = None
+    HAS_EDGE_TTS = False
 
 logger = logging.getLogger("BrainCore.Voice.TTS")
 
@@ -77,6 +82,9 @@ def clean_text_for_speech(text: str, persona: str = "emi") -> str:
 
 async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
     """Generate spoken MP3 audio bytes in-memory for audio attachments."""
+    if not HAS_EDGE_TTS:
+        raise RuntimeError("โมเดลแปลงเสียง edge-tts ยังไม่ได้ติดตั้ง กรุณารัน: pip install edge-tts")
+
     spoken_text = clean_text_for_speech(text, persona=persona)
     if not spoken_text:
         spoken_text = "สวัสดีค่ะพี่จ๋า เอมิอยู่นี่แล้วค่า" if persona == "emi" else "สวัสดีครับ มีอะไรให้เฮียช่วยครับ"
@@ -101,6 +109,9 @@ async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
 
 async def generate_speech_file(text: str, target_path: Optional[str] = None, persona: str = "emi") -> str:
     """Generate spoken MP3 audio file on disk for streaming / playback."""
+    if not HAS_EDGE_TTS:
+        raise RuntimeError("โมเดลแปลงเสียง edge-tts ยังไม่ได้ติดตั้ง กรุณารัน: pip install edge-tts")
+
     if not target_path:
         fd, target_path = tempfile.mkstemp(suffix=".mp3", prefix=f"tts_{persona}_")
         os.close(fd)
