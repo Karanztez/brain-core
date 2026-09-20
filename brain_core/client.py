@@ -59,26 +59,17 @@ class BrainClient:
             resp.raise_for_status()
             return resp.json()
 
-    def neural_activate(
-        self,
-        cues: List[str],
-        trunk_filters: Optional[List[str]] = None,
-        max_hops: int = 2,
-    ) -> Dict[str, Any]:
+    def neural_activate(self, query: str) -> Dict[str, Any]:
         """Trigger spreading activation across neural trunks."""
-        payload = {
-            "cues": cues,
-            "trunk_filters": trunk_filters,
-            "max_hops": max_hops,
-        }
         with httpx.Client(base_url=self.base_url, timeout=self.timeout) as client:
-            resp = client.post("/neural/activate", json=payload)
+            resp = client.post("/neural/activate", json={"query": query})
             resp.raise_for_status()
             return resp.json()
 
     def neural_grow(
         self,
         trunk: str,
+        neuron_id: str,
         content: str,
         tags: Optional[List[str]] = None,
         baseline_weight: float = 1.0,
@@ -86,6 +77,7 @@ class BrainClient:
         """Grow a new neuron in the cortex."""
         payload = {
             "trunk": trunk,
+            "neuron_id": neuron_id,
             "content": content,
             "tags": tags or [],
             "baseline_weight": baseline_weight,
@@ -99,9 +91,9 @@ class BrainClient:
         self,
         source_id: str,
         target_id: str,
-        weight: float = 1.0,
+        weight: float = 0.5,
         relation: str = "associated_with",
-        bidirectional: bool = True,
+        bidirectional: bool = False,
     ) -> Dict[str, Any]:
         """Connect two neurons with a synapse."""
         payload = {
@@ -157,20 +149,10 @@ class BrainClient:
             resp.raise_for_status()
             return resp.json()
 
-    async def a_neural_activate(
-        self,
-        cues: List[str],
-        trunk_filters: Optional[List[str]] = None,
-        max_hops: int = 2,
-    ) -> Dict[str, Any]:
+    async def a_neural_activate(self, query: str) -> Dict[str, Any]:
         """Async trigger spreading activation across neural trunks."""
-        payload = {
-            "cues": cues,
-            "trunk_filters": trunk_filters,
-            "max_hops": max_hops,
-        }
         async with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout) as client:
-            resp = await client.post("/neural/activate", json=payload)
+            resp = await client.post("/neural/activate", json={"query": query})
             resp.raise_for_status()
             return resp.json()
 
