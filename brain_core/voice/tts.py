@@ -166,7 +166,8 @@ async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
     # 1. Check Voice Cloning Providers (Fish Audio / ElevenLabs) if configured for genuine Anya
     voice_engine = (os.getenv("VOICE_ENGINE") or "fish-audio").lower()
     logger.info(f"🎙️ [TTS] Generating voice for persona='{persona}', engine_preference='{voice_engine}'")
-    if persona.lower() == "emi" and voice_engine not in {"edge", "edge-tts", "native"}:
+    # For Emi, always prioritize Fish Audio voice clone unless explicitly forced otherwise via 'force-edge'
+    if persona.lower() == "emi" and voice_engine not in {"force-edge", "disable-clone"}:
         try:
             from brain_core.voice.cloning import generate_cloned_anya_speech
             cloned_audio = await generate_cloned_anya_speech(spoken_text)
