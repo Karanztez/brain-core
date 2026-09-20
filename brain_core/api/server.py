@@ -17,6 +17,7 @@ from brain_core.security.redactor import ZeroLeakRedactor
 from brain_core.memory.buffer import ChannelContextBuffer
 from brain_core.neural.cortex import NeuralCortex, create_standard_cortex
 from brain_core.neural.neuron import MajorTrunk
+from brain_core.tools.code_review import OpenCodeReviewTool
 
 try:
     from fastapi import FastAPI, HTTPException
@@ -33,6 +34,7 @@ default_registry.register_config(BO_CONFIG, aliases=["เฮียโบ้", "b
 default_channel_buffer = ChannelContextBuffer()
 default_redactor = ZeroLeakRedactor()
 default_cortex = create_standard_cortex()
+default_code_reviewer = OpenCodeReviewTool()
 
 
 class DecideRequest(BaseModel):
@@ -99,6 +101,24 @@ class ConnectSynapseRequest(BaseModel):
 class CorrectNeuronRequest(BaseModel):
     neuron_id: str
     corrected_content: str
+
+
+class CodeReviewRequest(BaseModel):
+    code: str
+    language: str = "python"
+    file_name: str = "snippet.py"
+    persona_id: str = "emi"
+
+
+class CodeReviewResponse(BaseModel):
+    engine: str
+    cli_installed: bool
+    total_lines: int
+    total_issues: int
+    score: int
+    verdict: str
+    findings: List[Dict[str, Any]]
+    formatted_comment: str
 
 
 if HAS_FASTAPI:
@@ -205,6 +225,16 @@ if HAS_FASTAPI:
     @app.get("/neural/state")
     def neural_state() -> Dict[str, Any]:
         return default_cortex.export_state()
+
+    @app.post("/tools/code-review", response_model=CodeReviewResponse)
+    def review_code(req: CodeReviewRequest) -> CodeReviewResponse:
+        report = default_code_reviewer.review_code(
+            code=req.code,
+            language=req.language,
+            file_name=req.file_name,
+            persona_id=req.persona_id,
+        )
+        return CodeReviewResponse(**report)
 else:
     app = None
 

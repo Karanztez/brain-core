@@ -19,7 +19,7 @@ BO_CONFIG = PersonaConfig(
     timeout_fallback="❌ การเชื่อมต่อหมดเวลาครับคุณพี่ กรุณาส่งประเด็นมาใหม่อีกครั้งนะครับ",
     rate_limit_fallback="❌ เซิร์ฟเวอร์ AI ค่อนข้างแน่นครับคุณพี่ ลองใหม่อีกครั้งใน 10-30 วินาทีนะครับ",
     allowed_tools=[
-        "search_web", "research_web", "decode_inspect_data", "wikihow_search", "wikihow_get_guide"
+        "search_web", "research_web", "decode_inspect_data", "wikihow_search", "wikihow_get_guide", "open_code_review"
     ],
     forbidden_terms=["ค่ะ", "เอมิ", "หนู", "วากุวากุ"],
 )

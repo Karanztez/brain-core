@@ -126,6 +126,25 @@ class BrainClient:
             resp.raise_for_status()
             return resp.json()
 
+    def review_code(
+        self,
+        code: str,
+        language: str = "python",
+        file_name: str = "snippet.py",
+        persona_id: str = "emi",
+    ) -> Dict[str, Any]:
+        """Perform Alibaba Open Code Review on code snippet."""
+        payload = {
+            "code": code,
+            "language": language,
+            "file_name": file_name,
+            "persona_id": persona_id,
+        }
+        with httpx.Client(base_url=self.base_url, timeout=self.timeout) as client:
+            resp = client.post("/tools/code-review", json=payload)
+            resp.raise_for_status()
+            return resp.json()
+
     # -------------------------------------------------------------
     # Asynchronous Methods (for Discord bot asyncio loops)
     # -------------------------------------------------------------
@@ -160,5 +179,24 @@ class BrainClient:
         """Async redact sensitive platform/model tokens from text."""
         async with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout) as client:
             resp = await client.post("/redact", json={"text": text})
+            resp.raise_for_status()
+            return resp.json()
+
+    async def a_review_code(
+        self,
+        code: str,
+        language: str = "python",
+        file_name: str = "snippet.py",
+        persona_id: str = "emi",
+    ) -> Dict[str, Any]:
+        """Async perform Alibaba Open Code Review on code snippet."""
+        payload = {
+            "code": code,
+            "language": language,
+            "file_name": file_name,
+            "persona_id": persona_id,
+        }
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout) as client:
+            resp = await client.post("/tools/code-review", json=payload)
             resp.raise_for_status()
             return resp.json()

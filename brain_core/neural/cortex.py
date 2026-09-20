@@ -212,4 +212,15 @@ def create_standard_cortex() -> NeuralCortex:
         baseline_weight=0.95,
     )
 
+    # 4. Major Trunk: Skills & Code Review (Alibaba Open Code Review)
+    cortex.grow_neuron(
+        trunk=MajorTrunk.SKILLS,
+        neuron_id="skill_open_code_review",
+        content="Alibaba Open Code Review (ocr) เครื่องมือ AI ตรวจจับบั๊กและช่องโหว่ความปลอดภัยระดับบรรทัด ใช้โทเคนเพียง 1 ใน 9 สแกน Null Pointer, SQL Injection, Thread-safety และ Clean Code",
+        tags={"รีวิวโค้ด", "ตรวจโค้ด", "เช็คโค้ด", "สับโค้ด", "code_review", "open_code_review", "ocr", "บั๊ก", "หาบั๊ก", "code"},
+        baseline_weight=1.0,
+    )
+    cortex.connect_synapse("skill_open_code_review", "developer_moll", weight=0.9, relation="tool_used_by", bidirectional=True)
+    cortex.connect_synapse("skill_open_code_review", "partner_emi_bo", weight=0.9, relation="skill_possessed_by", bidirectional=True)
+
     return cortex

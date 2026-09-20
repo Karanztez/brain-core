@@ -14,6 +14,7 @@ class IntentType(str, Enum):
     DECODE = "decode"      # Data decoding (Base64, Hex, Cipher, CTF, multiplexed streams)
     MODERATE = "moderate"  # Anti-scam, toxicity inspection, rule enforcement
     TASK = "task"          # Explicit instructions, code generation, step-by-step guidance
+    CODE_REVIEW = "code_review"  # AI code review using Alibaba Open Code Review (OCR)
 
 
 class PersonaGender(str, Enum):

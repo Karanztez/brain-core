@@ -39,7 +39,24 @@ class PersonaBrain:
                 reasoning="Cipher/Data inspection pattern recognized",
             )
 
-        # 2. Teaching / Skill acquisition intent
+        # 2. Code Review intent (Alibaba Open Code Review - OCR)
+        is_code_block = "```" in clean
+        is_code_review = bool(
+            re.search(r"รีวิวโค้ด|ตรวจโค้ด|เช็คโค้ด|สับโค้ด|หาบั๊ก|บั๊กในโค้ด|code review|review code|ocr|open-code-review", clean, re.I)
+            or (is_code_block and any(w in clean for w in ["บั๊ก", "ปลอดภัย", "ดีไหม", "ตรวจ", "รีวิว", "เช็ค", "review"]))
+        )
+        if is_code_review and self.persona.is_tool_allowed("open_code_review"):
+            return BrainDecision(
+                persona_id=self.persona.id,
+                intent=IntentType.CODE_REVIEW,
+                should_search=False,
+                allow_tools=True,
+                allowed_tools=["open_code_review"],
+                skill_context="ผู้ใช้ขอให้รีวิวโค้ด ให้ใช้ open_code_review (Alibaba Open Code Review) ตรวจจับบั๊กและช่องโหว่ความปลอดภัยระดับบรรทัด",
+                reasoning="Code review intent detected, routed to Alibaba Open Code Review",
+            )
+
+        # 3. Teaching / Skill acquisition intent
         is_teach = any(w in clean for w in ["จำไว้ว่า", "สอนให้จำ", "ตั้งแต่นี้ไปให้", "กฎใหม่:", "เพิ่มความรู้:"])
         if is_teach and self.persona.is_tool_allowed("teach_persona"):
             return BrainDecision(
