@@ -147,7 +147,8 @@ async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
         spoken_text = "สวัสดีค่ะพี่จ๋า เอมิอยู่นี่แล้วค่า" if persona == "emi" else "สวัสดีครับ มีอะไรให้เฮียช่วยครับ"
 
     # 1. Check Voice Cloning Providers (Fish Audio / ElevenLabs) if configured for genuine Anya
-    if persona.lower() == "emi":
+    voice_engine = os.getenv("VOICE_ENGINE", "auto").lower()
+    if persona.lower() == "emi" and voice_engine not in {"edge", "edge-tts", "native"}:
         try:
             from brain_core.voice.cloning import generate_cloned_anya_speech
             cloned_audio = await generate_cloned_anya_speech(spoken_text)

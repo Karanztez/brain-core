@@ -96,8 +96,8 @@ async def _call_fish_audio(
         "reference_id": reference_id,
         "format": "mp3",
         "latency": os.getenv("FISH_AUDIO_LATENCY", "low"),
-        "temperature": float(os.getenv("FISH_AUDIO_TEMPERATURE", "0.3")),
-        "normalize": True,
+        "temperature": float(os.getenv("FISH_AUDIO_TEMPERATURE", "0.2")),
+        "normalize": os.getenv("FISH_AUDIO_NORMALIZE", "false").lower() == "true",
         "prosody": {
             "speed": float(os.getenv("FISH_AUDIO_SPEED", "0.95")),
             "volume": 0.0,
