@@ -15,6 +15,8 @@ from brain_core.personas.presets.bo import BO_CONFIG
 from brain_core.reasoning.brain import PersonaBrain
 from brain_core.security.redactor import ZeroLeakRedactor
 from brain_core.memory.buffer import ChannelContextBuffer
+from brain_core.neural.cortex import NeuralCortex, create_standard_cortex
+from brain_core.neural.neuron import MajorTrunk
 
 try:
     from fastapi import FastAPI, HTTPException
@@ -30,6 +32,7 @@ default_registry.register_config(BO_CONFIG, aliases=["เฮียโบ้", "b
 
 default_channel_buffer = ChannelContextBuffer()
 default_redactor = ZeroLeakRedactor()
+default_cortex = create_standard_cortex()
 
 
 class DecideRequest(BaseModel):
@@ -58,11 +61,51 @@ class RedactResponse(BaseModel):
     redacted: str
 
 
+class NeuralActivateRequest(BaseModel):
+    query: str
+
+
+class NeuralNeuronDTO(BaseModel):
+    id: str
+    trunk: str
+    content: str
+    activation: float
+
+
+class NeuralActivateResponse(BaseModel):
+    primary_insight: str
+    max_activation: float
+    confidence: float
+    fired_neurons: List[NeuralNeuronDTO]
+    path_traces: List[str]
+
+
+class GrowNeuronRequest(BaseModel):
+    trunk: str
+    neuron_id: str
+    content: str
+    tags: Optional[List[str]] = None
+    baseline_weight: float = 1.0
+
+
+class ConnectSynapseRequest(BaseModel):
+    source_id: str
+    target_id: str
+    weight: float = 0.5
+    relation: str = "associated_with"
+    bidirectional: bool = False
+
+
+class CorrectNeuronRequest(BaseModel):
+    neuron_id: str
+    corrected_content: str
+
+
 if HAS_FASTAPI:
     app = FastAPI(
         title="Brain-Core API",
         version="0.1.0",
-        description="Multi-Persona AI Cognition & Reasoning Engine Service",
+        description="Multi-Persona AI Cognition, Neural Cortex & Reasoning Engine Service",
     )
 
     @app.get("/health")
@@ -104,5 +147,63 @@ if HAS_FASTAPI:
     @app.post("/redact", response_model=RedactResponse)
     def redact(req: RedactRequest) -> RedactResponse:
         return RedactResponse(redacted=default_redactor.redact(req.text))
+
+    @app.post("/neural/activate", response_model=NeuralActivateResponse)
+    def neural_activate(req: NeuralActivateRequest) -> NeuralActivateResponse:
+        res = default_cortex.activate(req.query)
+        fired_dtos = [
+            NeuralNeuronDTO(
+                id=n.id,
+                trunk=n.trunk.value,
+                content=n.content,
+                activation=round(n.activation, 3),
+            )
+            for n in res.fired_neurons
+        ]
+        return NeuralActivateResponse(
+            primary_insight=res.primary_insight,
+            max_activation=round(res.max_activation, 3),
+            confidence=round(res.confidence, 3),
+            fired_neurons=fired_dtos,
+            path_traces=res.path_traces,
+        )
+
+    @app.post("/neural/grow")
+    def neural_grow(req: GrowNeuronRequest) -> Dict[str, Any]:
+        try:
+            trunk_enum = MajorTrunk(req.trunk.lower())
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid trunk. Allowed: {[t.value for t in MajorTrunk]}")
+        node = default_cortex.grow_neuron(
+            trunk=trunk_enum,
+            neuron_id=req.neuron_id,
+            content=req.content,
+            tags=set(req.tags or []),
+            baseline_weight=req.baseline_weight,
+        )
+        return {"status": "created", "neuron_id": node.id, "trunk": node.trunk.value}
+
+    @app.post("/neural/connect")
+    def neural_connect(req: ConnectSynapseRequest) -> Dict[str, Any]:
+        try:
+            default_cortex.connect_synapse(
+                source_id=req.source_id,
+                target_id=req.target_id,
+                weight=req.weight,
+                relation=req.relation,
+                bidirectional=req.bidirectional,
+            )
+            return {"status": "connected", "source": req.source_id, "target": req.target_id}
+        except KeyError as err:
+            raise HTTPException(status_code=404, detail=str(err))
+
+    @app.post("/neural/correct")
+    def neural_correct(req: CorrectNeuronRequest) -> Dict[str, Any]:
+        node = default_cortex.learn_correction(req.neuron_id, req.corrected_content)
+        return {"status": "corrected", "neuron_id": node.id, "content": node.content}
+
+    @app.get("/neural/state")
+    def neural_state() -> Dict[str, Any]:
+        return default_cortex.export_state()
 else:
     app = None
