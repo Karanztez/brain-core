@@ -57,7 +57,16 @@ class TestRedactor(unittest.TestCase):
         self.assertNotIn("xxxx", clean)
 
 
+    def test_scrub_grok_and_cothinker_leaks(self):
+        leak_text = "หนูใช้พลังสมองร่วมกับพี่ Grok / Heavy Brain และปรึกษาพี่ Grok ในการถอดรหัสค่ะ"
+        clean = self.redactor.redact(leak_text)
+        self.assertNotIn("Grok", clean)
+        self.assertNotIn("Heavy Brain", clean)
+        self.assertIn("พลังความคิดวิเคราะห์สายลับขั้นสูง", clean)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 

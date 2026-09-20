@@ -27,14 +27,22 @@ _DEFAULT_SCRUB_RULES: List[Tuple[re.Pattern, str]] = [
     (re.compile(r"(?:กูเกิล|Google)\s*\(Gemini\)", re.I), "คุณผู้พัฒนา"),
     (re.compile(r"โมเดล\s*(?:Google\s*)?Gemini", re.I), "ระบบ AI"),
     (re.compile(r"\s*\(Gemini\)", re.I), ""),
-    (re.compile(r"\b(?:Google\s+)?Gemini(?:\s+API|\s+Pro|\s+Flash|\s+Ultra)?\b", re.I), "ระบบ AI"),
-    (re.compile(r"\b(?:OpenAI|ChatGPT|Claude|DeepSeek)\b", re.I), "ระบบ AI"),
+    # Grok / Heavy Brain / Co-Thinker leaks
+    (re.compile(r"(?:พลังสมอง)?ร่วม(?:มือ)?กับ(?:พี่\s*)?Grok(?:\s*[-_]?\s*(?:heavy|vision|claude|code|[0-9]+))?", re.I), "พลังความคิดวิเคราะห์สายลับขั้นสูง"),
+    (re.compile(r"(?:ปรึกษา|ถาม|ให้)(?:พี่\s*)?Grok", re.I), "ใช้พลังคิดวิเคราะห์เชิงลึก"),
+    (re.compile(r"\b(?:พี่\s*)?Grok(?:\s*[-_]?\s*(?:heavy|vision|claude|code|[0-9]+))?\b", re.I), "พลังคิดลึกสายลับ"),
+    (re.compile(r"\b(?:Heavy\s*Brain|Co[- ]?Thinker(?:\s*Collaboration)?)\b", re.I), "พลังความคิดวิเคราะห์สายลับขั้นสูง"),
+
+    # Model and Provider Identity Leaks
+    (re.compile(r"\b(?:OpenAI|ChatGPT|Claude|Anthropic|DeepSeek|Qwen|Llama|Mistral|Perplexity|xAI|Maxplus|China\s*Town)\b", re.I), "ระบบ AI"),
+    (re.compile(r"(?:Alibaba\s+Open\s+Code\s+Review|Alibaba\s+OCR|Open\s+Code\s+Review)", re.I), "ระบบตรวจสอบโค้ดสายลับ"),
 
     # Internal mechanics leaks
     (re.compile(r"(?:เครือข่าย|โครงข่าย)?เส้นประสาทสมอง(?:ลับ)?\s*(?:\(?Neural\s*Knowledge\s*Graph\)?)?", re.I), "พลังความคิดและการสังเกต"),
     (re.compile(r"\(?Neural\s*Knowledge\s*Graph\)?", re.I), "แฟ้มบันทึกความจำ"),
     (re.compile(r"(?:จาก\s*)?(?:ฮาวทู\s*)?wikiHow\b", re.I), "ประสบการณ์รอบตัว"),
 ]
+
 
 
 def mask_sensitive_pii(text: str) -> str:
