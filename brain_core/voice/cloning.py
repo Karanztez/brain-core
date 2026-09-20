@@ -64,13 +64,27 @@ async def generate_cloned_anya_speech(text: str) -> Optional[bytes]:
     return None
 
 
+# Persistent Keep-Alive HTTP client pool (saves 1.0-1.2s TCP+TLS handshake per request)
+_fish_audio_client: Optional[httpx.AsyncClient] = None
+
+
+def _get_fish_audio_client() -> httpx.AsyncClient:
+    global _fish_audio_client
+    if _fish_audio_client is None or _fish_audio_client.is_closed:
+        _fish_audio_client = httpx.AsyncClient(
+            timeout=25.0,
+            limits=httpx.Limits(max_keepalive_connections=8, max_connections=20, keepalive_expiry=120.0),
+        )
+    return _fish_audio_client
+
+
 async def _call_fish_audio(
     text: str,
     api_key: str,
     reference_id: str,
     model: str = "s2.1-pro-free",
 ) -> Optional[bytes]:
-    """Call Fish Audio TTS API. Uses 'model: s2.1-pro-free' header for free zero-credit usage."""
+    """Call Fish Audio TTS API using persistent keepalive connection pool."""
     url = "https://api.fish.audio/v1/tts"
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -90,12 +104,12 @@ async def _call_fish_audio(
             "normalize_loudness": True,
         },
     }
+    client = _get_fish_audio_client()
     async with _get_fish_audio_semaphore():
-        async with httpx.AsyncClient(timeout=25.0) as client:
-            res = await client.post(url, headers=headers, json=payload)
-            if res.status_code == 200 and len(res.content) > 1000:
-                return res.content
-            logger.warning(f"Fish Audio returned {res.status_code}: {res.text[:150]}")
+        res = await client.post(url, headers=headers, json=payload)
+        if res.status_code == 200 and len(res.content) > 1000:
+            return res.content
+        logger.warning(f"Fish Audio returned {res.status_code}: {res.text[:150]}")
     return None
 
 

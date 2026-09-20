@@ -87,9 +87,21 @@ def clean_text_for_speech(text: str, persona: str = "emi") -> str:
     if not clean:
         return "วากุวากุ!" if persona == "emi" else "ครับผม"
 
-    # 8. Truncate long responses to 800 characters for optimal sub-2s speech generation
-    if len(clean) > 800:
-        clean = clean[:790] + ("..." if clean[-1] not in ".!?" else "")
+    # 8. Optimize speech length for ultra-fast ~1s generation (max ~200 chars)
+    # If the response is a long detailed text, the voice speaks the primary punchy answer,
+    # keeping speech generation lightning-fast (~1s) while full details remain in Discord chat!
+    max_speech_chars = int(os.getenv("VOICE_MAX_CHARS", "200"))
+    if len(clean) > max_speech_chars:
+        sentences = re.split(r"(?<=[.!?\n])\s+", clean)
+        shortened = ""
+        for s in sentences:
+            if len(shortened) + len(s) <= max_speech_chars:
+                shortened += (" " if shortened else "") + s
+            else:
+                break
+        if not shortened:
+            shortened = clean[:max_speech_chars - 5] + ("..." if clean[-1] not in ".!?" else "")
+        clean = shortened
 
     return clean
 
