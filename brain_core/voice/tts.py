@@ -9,6 +9,7 @@ import io
 import logging
 import os
 import re
+import subprocess
 import tempfile
 from typing import Dict, Any, Optional
 
@@ -23,19 +24,21 @@ from brain_core.voice.auto_install import get_edge_tts_module, ensure_voice_depe
 
 logger = logging.getLogger("BrainCore.Voice.TTS")
 
-# Voice Profile Presets
+# Voice Profile Presets with Anime Vocal Formant Shifting
 VOICE_PROFILES: Dict[str, Dict[str, str]] = {
     "emi": {
         "voice": "th-TH-PremwadeeNeural",
-        "pitch": "+12Hz",
-        "rate": "+8%",
+        "pitch": "+65Hz",
+        "rate": "+10%",
         "volume": "+0%",
+        "filter": "asetrate=24000*1.14,atempo=1/1.14,highpass=f=120,equalizer=f=3600:t=q:w=1.2:g=4",
     },
     "bo": {
         "voice": "th-TH-NiwatNeural",
         "pitch": "-4Hz",
         "rate": "+0%",
         "volume": "+0%",
+        "filter": "equalizer=f=180:t=q:w=1.0:g=2.5",
     },
 }
 
@@ -82,8 +85,38 @@ def clean_text_for_speech(text: str, persona: str = "emi") -> str:
     return clean
 
 
+def apply_vocal_dsp(raw_audio: bytes, persona: str = "emi") -> bytes:
+    """Apply anime vocal tract formant shifting, EQ presence, and highpass filters via FFmpeg."""
+    profile = VOICE_PROFILES.get(persona.lower(), VOICE_PROFILES["emi"])
+    dsp_filter = profile.get("filter")
+    if not dsp_filter or not raw_audio:
+        return raw_audio
+
+    # Find ffmpeg binary path
+    ffmpeg_bin = "ffmpeg"
+    try:
+        import imageio_ffmpeg
+        ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        pass
+
+    try:
+        cmd = [
+            ffmpeg_bin, "-y", "-i", "pipe:0",
+            "-af", dsp_filter,
+            "-f", "mp3", "pipe:1"
+        ]
+        res = subprocess.run(cmd, input=raw_audio, capture_output=True, timeout=12, check=True)
+        if res.stdout and len(res.stdout) > 500:
+            return res.stdout
+    except Exception as e:
+        logger.debug(f"FFmpeg DSP filter bypassed or failed: {e}")
+
+    return raw_audio
+
+
 async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
-    """Generate spoken MP3 audio bytes in-memory for audio attachments."""
+    """Generate spoken MP3 audio bytes in-memory for audio attachments with Anime Vocal DSP."""
     tts_mod = edge_tts or get_edge_tts_module()
     if not tts_mod:
         raise RuntimeError("โมเดลแปลงเสียง edge-tts ยังไม่ได้ติดตั้ง และการติดตั้งอัตโนมัติไม่สำเร็จ กรุณารัน: pip install edge-tts")
@@ -106,31 +139,18 @@ async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
         if chunk["type"] == "audio":
             buffer.write(chunk["data"])
 
-    buffer.seek(0)
-    return buffer
+    raw_bytes = buffer.getvalue()
+    filtered_bytes = apply_vocal_dsp(raw_bytes, persona=persona)
+    return io.BytesIO(filtered_bytes)
 
 
 async def generate_speech_file(text: str, target_path: Optional[str] = None, persona: str = "emi") -> str:
     """Generate spoken MP3 audio file on disk for streaming / playback."""
-    tts_mod = edge_tts or get_edge_tts_module()
-    if not tts_mod:
-        raise RuntimeError("โมเดลแปลงเสียง edge-tts ยังไม่ได้ติดตั้ง และการติดตั้งอัตโนมัติไม่สำเร็จ กรุณารัน: pip install edge-tts")
-
     if not target_path:
         fd, target_path = tempfile.mkstemp(suffix=".mp3", prefix=f"tts_{persona}_")
         os.close(fd)
 
-    spoken_text = clean_text_for_speech(text, persona=persona)
-    if not spoken_text:
-        spoken_text = "สวัสดีค่ะพี่จ๋า เอมิอยู่นี่แล้วค่า" if persona == "emi" else "สวัสดีครับ มีอะไรให้เฮียช่วยครับ"
-
-    profile = VOICE_PROFILES.get(persona.lower(), VOICE_PROFILES["emi"])
-    communicate = tts_mod.Communicate(
-        text=spoken_text,
-        voice=profile["voice"],
-        pitch=profile["pitch"],
-        rate=profile["rate"],
-        volume=profile["volume"],
-    )
-    await communicate.save(target_path)
+    audio_buf = await generate_speech_bytes(text, persona=persona)
+    with open(target_path, "wb") as f:
+        f.write(audio_buf.getvalue())
     return target_path
