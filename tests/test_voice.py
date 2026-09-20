@@ -67,6 +67,12 @@ class TestBrainCoreVoiceAsync(unittest.IsolatedAsyncioTestCase):
             if os.path.exists(temp_file):
                 os.remove(temp_file)
 
+    async def test_convert_to_anya_voice_fallback(self):
+        from brain_core.voice.rvc import convert_to_anya_voice
+        sample_audio = b"fake-audio-bytes-at-least-1000" * 50
+        res = await convert_to_anya_voice(sample_audio)
+        self.assertGreater(len(res), 500)
+
 
 if __name__ == "__main__":
     unittest.main()

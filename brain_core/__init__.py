@@ -35,6 +35,7 @@ from brain_core.voice.tts import (
     generate_speech_file,
     VOICE_PROFILES,
 )
+from brain_core.voice.rvc import convert_to_anya_voice
 
 __version__ = "0.1.0"
 
@@ -76,4 +77,5 @@ __all__ = [
     "generate_speech_bytes",
     "generate_speech_file",
     "VOICE_PROFILES",
+    "convert_to_anya_voice",
 ]

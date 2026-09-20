@@ -140,6 +140,15 @@ async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
             buffer.write(chunk["data"])
 
     raw_bytes = buffer.getvalue()
+    # 1. Apply RVC Voice Conversion if persona is 'emi' (Anya Forger voice cloning)
+    if persona.lower() == "emi":
+        try:
+            from brain_core.voice.rvc import convert_to_anya_voice
+            raw_bytes = await convert_to_anya_voice(raw_bytes)
+        except Exception as e:
+            logger.debug(f"RVC conversion bypassed: {e}")
+
+    # 2. Apply Anime Vocal Formant Shifting DSP (presence & clarity)
     filtered_bytes = apply_vocal_dsp(raw_bytes, persona=persona)
     return io.BytesIO(filtered_bytes)
 
