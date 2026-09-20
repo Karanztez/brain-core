@@ -17,7 +17,7 @@ import re
 
 logger = logging.getLogger("BrainCore.Voice.Cloning")
 
-FISH_AUDIO_MODEL_ID = os.getenv("FISH_AUDIO_MODEL_ID", "38312989d47c45fb8ec1833f27e4f342")  # Anya Emi Super Clarity
+FISH_AUDIO_MODEL_ID = os.getenv("FISH_AUDIO_MODEL_ID", "78fc6c9c1e2b4d68affaa2cca995da3e")  # Emi Snaptik Cute Thai (Clean Vowels & No Noise)
 FISH_AUDIO_MODEL = os.getenv("FISH_AUDIO_MODEL", "s2.1-pro-free")  # Free Tier S2.1 Pro Model
 
 # Concurrency limiter to strictly adhere to Fish Audio 5 concurrent requests limit (prevents 429 Too Many Requests)
