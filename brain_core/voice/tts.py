@@ -24,21 +24,21 @@ from brain_core.voice.auto_install import get_edge_tts_module, ensure_voice_depe
 
 logger = logging.getLogger("BrainCore.Voice.TTS")
 
-# Voice Profile Presets with Anime Vocal Formant Shifting
+# Voice Profile Presets (Clean, Natural, High-Fidelity)
 VOICE_PROFILES: Dict[str, Dict[str, str]] = {
     "emi": {
         "voice": "th-TH-PremwadeeNeural",
-        "pitch": "+65Hz",
-        "rate": "+10%",
+        "pitch": "+18Hz",
+        "rate": "+5%",
         "volume": "+0%",
-        "filter": "asetrate=24000*1.14,atempo=1/1.14,highpass=f=120,equalizer=f=3600:t=q:w=1.2:g=4",
+        "filter": "",  # Blank to preserve crisp studio quality without robotic phase artifacts
     },
     "bo": {
         "voice": "th-TH-NiwatNeural",
         "pitch": "-4Hz",
         "rate": "+0%",
         "volume": "+0%",
-        "filter": "equalizer=f=180:t=q:w=1.0:g=2.5",
+        "filter": "",
     },
 }
 
@@ -124,6 +124,16 @@ async def generate_speech_bytes(text: str, persona: str = "emi") -> io.BytesIO:
     spoken_text = clean_text_for_speech(text, persona=persona)
     if not spoken_text:
         spoken_text = "สวัสดีค่ะพี่จ๋า เอมิอยู่นี่แล้วค่า" if persona == "emi" else "สวัสดีครับ มีอะไรให้เฮียช่วยครับ"
+
+    # 1. Check Voice Cloning Providers (Fish Audio / ElevenLabs) if configured for genuine Anya
+    if persona.lower() == "emi":
+        try:
+            from brain_core.voice.cloning import generate_cloned_anya_speech
+            cloned_audio = await generate_cloned_anya_speech(spoken_text)
+            if cloned_audio and len(cloned_audio) > 1000:
+                return io.BytesIO(cloned_audio)
+        except Exception as e:
+            logger.debug(f"Direct voice clone provider skipped: {e}")
 
     profile = VOICE_PROFILES.get(persona.lower(), VOICE_PROFILES["emi"])
     communicate = tts_mod.Communicate(

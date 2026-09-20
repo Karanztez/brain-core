@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Unit tests for Brain-Core Voice Module."""
 import io
 import os
