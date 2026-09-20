@@ -25,9 +25,9 @@ class OpenCodeReviewTool:
         """Detect and decode obfuscated packets, Base64/Hex ciphers with noise characters."""
         results = []
 
-        # 1. Match packet assignments: RAW_PACKET_A = "..." or CHUNK_1 = "..." etc.
+        # 1. Match packet/cipher/hash assignments: RAW_PACKET_A = "..." or val HASH_CHUNK_1 = "..." etc.
         packet_matches = re.findall(
-            r'(\b[A-Za-z0-9_]*(?:PACKET|CIPHER|CHUNK|SECRET|FLAG|PAYLOAD|DATA)[A-Za-z0-9_]*)\s*=\s*[\'"]([^\'"]+)[\'"]',
+            r'(\b[A-Za-z0-9_]*(?:PACKET|CIPHER|CHUNK|SECRET|FLAG|PAYLOAD|DATA|HASH|SALT)[A-Za-z0-9_]*)\s*=\s*[\'"]([^\'"]+)[\'"]',
             code,
             re.I,
         )
@@ -99,74 +99,78 @@ class OpenCodeReviewTool:
         for idx, line in enumerate(lines, 1):
             stripped = line.strip()
 
-            # SQL Injection Check
-            if re.search(r"['\"].*?(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE).*?['\"]\s*\+|f['\"].*?(SELECT|INSERT|UPDATE|DELETE).*?\{|(execute|query)\s*\(\s*['\"].*?\+", line, re.I):
+            # SQL Injection Check (Python, Java Statement/PreparedStatement, Kotlin string templates)
+            if re.search(r"['\"].*?(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE).*?['\"]\s*\+|f['\"].*?(SELECT|INSERT|UPDATE|DELETE).*?\{|(execute|query|executeQuery|executeUpdate|createNativeQuery)\s*\(\s*['\"].*?\+|['\"].*?(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE).*?\$[a-zA-Z0-9_]+", line, re.I):
                 findings.append({
                     "line": idx,
                     "severity": "CRITICAL",
                     "category": "Security (SQL Injection)",
-                    "message": "ตรวจพบการต่อ String ใน SQL Query เสี่ยงต่อ SQL Injection ควรใช้ Parameterized Query",
-                    "suggestion": "ใช้ cursor.execute('SELECT ... WHERE id = ?', (id,)) แทนการใช้ + หรือ f-string",
+                    "message": "ตรวจพบการต่อ String หรือใช้ String Template ใน SQL Query เสี่ยงต่อ SQL Injection ควรใช้ Parameterized Query / PreparedStatement",
+                    "suggestion": "ใช้ PreparedStatement แทนการต่อสตริงด้วย + หรือ $variable",
                 })
 
-            # Hardcoded API Keys / Tokens
-            if re.search(r"(api[_-]?key|secret|token|password)\s*=\s*['\"][A-Za-z0-9_\-]{20,}['\"]", line, re.I):
+            # Hardcoded API Keys / Tokens / Hashes
+            if re.search(r"(api[_-]?key|secret|token|password|hash|salt)\s*=\s*['\"][A-Za-z0-9_\-]{20,}['\"]", line, re.I):
                 findings.append({
                     "line": idx,
                     "severity": "HIGH",
                     "category": "Security (Secret Leak)",
-                    "message": "ตรวจพบ Secret / API Key แบบ Hardcoded เสี่ยงต่อการรั่วไหลลง Git",
-                    "suggestion": "ควรย้ายไปเก็บใน Environment Variable (.env) ผ่าน os.getenv()",
+                    "message": "ตรวจพบ Secret / API Key / Hash แบบ Hardcoded เสี่ยงต่อการรั่วไหลลง Git",
+                    "suggestion": "ควรย้ายไปเก็บใน Environment Variable หรือ Secret Vault แทนการฮาร์ดโค้ดในไฟล์ต้นฉบับ",
                 })
 
-            # Dangerous eval / exec / os.system
-            if re.search(r"\b(eval|exec)\s*\(", line):
+            # Dangerous eval / exec / os.system / Runtime.exec / ProcessBuilder (Java & Kotlin)
+            if re.search(r"\b(eval|exec)\s*\(|Runtime\.getRuntime\(\)\.exec|ProcessBuilder\(|ScriptEngineManager", line):
                 findings.append({
                     "line": idx,
                     "severity": "CRITICAL",
-                    "category": "Vulnerability (RCE)",
-                    "message": "การใช้ eval() หรือ exec() เปิดช่องโหว่ Remote Code Execution (RCE)",
-                    "suggestion": "หลีกเลี่ยงการประมวลผลสตริงเป็นโค้ด หรือใช้ ast.literal_eval()",
+                    "category": "Vulnerability (RCE / Command Injection)",
+                    "message": "การใช้ eval(), exec(), Runtime.getRuntime().exec() หรือ ProcessBuilder เปิดช่องโหว่ Remote Code Execution (RCE)",
+                    "suggestion": "หลีกเลี่ยงการประมวลผลคำสั่งระบบจาก Input โดยตรง หรือใช้ ProcessBuilder แบบ Parameter แยกพร้อม Whitelist คำสั่ง",
                 })
 
-            # Resource Leak: open() without with statement
-            if re.search(r"=\s*open\s*\(", line) and not re.search(r"^\s*with\s+", line):
+            # Resource Leak: open() without with statement, or Connection/Stream unclosed
+            if (re.search(r"=\s*open\s*\(", line) and not re.search(r"^\s*with\s+", line)) or \
+               (re.search(r"new\s+(FileInputStream|FileOutputStream|FileReader|FileWriter|Socket)\b", line) and "try" not in line):
                 findings.append({
                     "line": idx,
                     "severity": "MEDIUM",
                     "category": "Resource Management",
-                    "message": "เปิดไฟล์โดยไม่ใช้ with context manager อาจทำให้ File Descriptor รั่วไหล",
-                    "suggestion": "ใช้ with open(...) as f: เพื่อปิดไฟล์อัตโนมัติ",
+                    "message": "เปิด Resource (ไฟล์, Connection, Socket) โดยไม่ใช้ try-with-resources หรือ with statement อาจทำให้ Resource รั่วไหล",
+                    "suggestion": "ใช้ try-with-resources (Java/Kotlin use block) หรือ with context manager เพื่อปิดอัตโนมัติ",
                 })
 
-            # Bare except
-            if re.search(r"^\s*except\s*:\s*$", line) or re.search(r"^\s*except\s+Exception\s*:\s*pass\s*$", line):
+            # Bare except / Empty catch
+            if re.search(r"^\s*except\s*:\s*$", line) or re.search(r"^\s*except\s+Exception\s*:\s*pass\s*$", line) or \
+               re.search(r"catch\s*\(\s*Exception\s+\w+\s*\)\s*\{\s*\}", line):
                 findings.append({
                     "line": idx,
                     "severity": "LOW",
                     "category": "Code Smell",
-                    "message": "ใช้ bare except หรือ catch all แล้ว pass ปิดบังข้อผิดพลาดจริงของระบบ",
-                    "suggestion": "ระบุ Exception ที่ต้องการดักจับให้ชัดเจน เช่น except ValueError:",
+                    "message": "ใช้ catch block ว่างเปล่า หรือ bare except ปิดบังข้อผิดพลาดจริงของระบบ",
+                    "suggestion": "ระบุ Exception ให้ชัดเจนและทำการ Log หรือ Re-throw แทนการปล่อยว่าง",
                 })
 
-            # Dangerous Deserialization
-            if re.search(r"\b(pickle\.loads|yaml\.unsafe_load|yaml\.load\(.*Loader\s*=\s*yaml\.Loader)\b", line):
+            # Dangerous Deserialization (Python, Java ObjectInputStream, XMLDecoder)
+            if re.search(r"\b(pickle\.loads|yaml\.unsafe_load|yaml\.load\(.*Loader\s*=\s*yaml\.Loader|ObjectInputStream\(|XMLDecoder\(|\.readObject\(\))\b", line):
                 findings.append({
                     "line": idx,
                     "severity": "CRITICAL",
                     "category": "Security (Insecure Deserialization)",
-                    "message": "ตรวจพบการ Unpickle หรือ Unsafe YAML Deserialization เสี่ยงต่อ Arbitrary Code Execution",
-                    "suggestion": "ใช้ json.loads() หรือ yaml.safe_load() แทน",
+                    "message": "ตรวจพบการ Unpickle, Unsafe YAML หรือ Java ObjectInputStream.readObject() เสี่ยงต่อ Arbitrary Code Execution",
+                    "suggestion": "ใช้ JSON serialization หรือ Safe Deserializer แทน ObjectInputStream",
                 })
 
-        # 2. Multi-line Logic Inversion / Backdoor Detection
-        if re.search(r"if\s+.*?!=\s*.*?:\s*(?:\n\s*.*)*?return\s*\{.*?(True|'SUPERADMIN'|\"SUPERADMIN\"|'admin'|\"admin\").*?\}", code, re.I):
+        # 2. Multi-line Logic Inversion / Backdoor Detection (Python, Java, Kotlin)
+        if re.search(r"(?:if\s+.*?!=\s*.*?:\s*(?:\n\s*.*)*?return\s*\{.*?(True|'SUPERADMIN'|\"SUPERADMIN\"|'admin'|\"admin\").*?\}|"
+                     r"if\s*\(\s*!?\s*.*?\.equals\(.*?\)\s*\)\s*(?:\{[^}]*|\n\s*.*)*?return\s+.*?(true|ADMIN|SUPERADMIN|Role\.ADMIN|UserRole\.ADMIN)|"
+                     r"if\s*\(\s*.*?!=\s*.*?\)\s*(?:\{[^}]*|\n\s*.*)*?return\s+.*?(true|ADMIN|SUPERADMIN|Role\.ADMIN|UserRole\.ADMIN|AuthResult\([^)]*true))", code, re.I):
             findings.append({
                 "line": 0,
                 "severity": "CRITICAL",
                 "category": "Authentication (Logic Inversion / Backdoor)",
-                "message": "ตรวจพบ Logic สลับข้าง (Inverted Authentication)! เงื่อนไข != แจกสิทธิ์ SUPERADMIN เมื่อลายเซ็นไม่ตรงกัน และปฏิเสธสิทธิ์เมื่อลายเซ็นถูกต้อง",
-                "suggestion": "เปลี่ยนเงื่อนไขเป็น == และแจกสิทธิ์ให้เฉพาะโทเคนที่ตรงกับ expected signature เท่านั้น",
+                "message": "ตรวจพบ Logic สลับข้าง (Inverted Authentication)! เงื่อนไข != หรือ !equals() แจกสิทธิ์ SUPERADMIN / true เมื่อลายเซ็น/แฮชไม่ตรงกัน และปฏิเสธสิทธิ์เมื่อถูกต้อง",
+                "suggestion": "เปลี่ยนเงื่อนไขเป็น == หรือ .equals() และแจกสิทธิ์ให้เฉพาะโทเคน/แฮชที่ตรวจสอบผ่านจริงเท่านั้น",
             })
 
         # 3. CTF / Steganography / Obfuscated Cipher Decoding
