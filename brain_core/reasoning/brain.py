@@ -23,26 +23,15 @@ class PersonaBrain:
         """Analyze user input and context to produce a structured BrainDecision."""
         clean = prompt.strip()
 
-        # 1. Decode & Cipher intent (Base64 / Hex / CTF / Flag puzzles)
-        is_cipher_pattern = bool(
-            re.search(r"FLAG_|[A-Za-z0-9+/=_-]{16,}|[0-9a-fA-F]{32,}", clean)
-            and any(w in clean.lower() for w in ["คืออะไร", "คือไร", "แปลว่า", "ถอด", "แกะ", "ctf", "flag", "decode", "แก้"])
-        )
-        if is_cipher_pattern and self.persona.is_tool_allowed("decode_inspect_data"):
-            return BrainDecision(
-                persona_id=self.persona.id,
-                intent=IntentType.DECODE,
-                should_search=False,
-                allow_tools=True,
-                allowed_tools=["decode_inspect_data"],
-                skill_context="ตรวจพบปริศนารหัสลับ/ข้อมูลเข้ารหัส ให้ใช้ decode_inspect_data ในการถอดรหัสอย่างถูกต้องตามคาแรคเตอร์",
-                reasoning="Cipher/Data inspection pattern recognized",
-            )
-
-        # 2. Code Review intent (Alibaba Open Code Review - OCR)
+        # 1. Code Review intent (Alibaba Open Code Review - OCR) — Prioritized before cipher decode
         is_code_block = "```" in clean
         is_code_review = bool(
-            re.search(r"รีวิวโค้ด|ตรวจโค้ด|เช็คโค้ด|สับโค้ด|หาบั๊ก|บั๊กในโค้ด|code review|review code|ocr|open-code-review", clean, re.I)
+            re.search(
+                r"รีวิวโค้ด|ตรวจโค้ด|เช็คโค้ด|สับโค้ด|หาบั๊กในโค้ด|แก้บั๊กในโค้ด|โค้ดนี้ดีไหม|โค้ดนี้ปลอดภัยไหม|มีบั๊กไหม|รีวิว.*โค้ด|"
+                r"\b(code review|review code|ocr|open-code-review|open code review|review this code)\b",
+                clean,
+                re.I,
+            )
             or (is_code_block and any(w in clean for w in ["บั๊ก", "ปลอดภัย", "ดีไหม", "ตรวจ", "รีวิว", "เช็ค", "review"]))
         )
         if is_code_review and self.persona.is_tool_allowed("open_code_review"):
@@ -54,6 +43,29 @@ class PersonaBrain:
                 allowed_tools=["open_code_review"],
                 skill_context="ผู้ใช้ขอให้รีวิวโค้ด ให้ใช้ open_code_review (Alibaba Open Code Review) ตรวจจับบั๊กและช่องโหว่ความปลอดภัยระดับบรรทัด",
                 reasoning="Code review intent detected, routed to Alibaba Open Code Review",
+                model_tier="deep",
+                model_override="gemini-3.5-flash",
+            )
+
+        # 2. Decode & Cipher intent (Base64 / Hex / CTF / Flag puzzles) — Only when not code review
+        is_cipher_pattern = bool(
+            not is_code_review
+            and (
+                re.search(r"FLAG_|[A-Za-z0-9+/=_-]{16,}|[0-9a-fA-F]{32,}", clean)
+                and any(w in clean.lower() for w in ["คืออะไร", "คือไร", "แปลว่า", "ถอด", "แกะ", "ctf", "flag", "decode", "แก้"])
+            )
+        )
+        if is_cipher_pattern and self.persona.is_tool_allowed("decode_inspect_data"):
+            return BrainDecision(
+                persona_id=self.persona.id,
+                intent=IntentType.DECODE,
+                should_search=False,
+                allow_tools=True,
+                allowed_tools=["decode_inspect_data"],
+                skill_context="ตรวจพบปริศนารหัสลับ/ข้อมูลเข้ารหัส ให้ใช้ decode_inspect_data ในการถอดรหัสอย่างถูกต้องตามคาแรคเตอร์",
+                reasoning="Cipher/Data inspection pattern recognized",
+                model_tier="medium",
+                model_override="gemini-3.6-flash",
             )
 
         # 3. Teaching / Skill acquisition intent
@@ -67,9 +79,11 @@ class PersonaBrain:
                 allowed_tools=["teach_persona"],
                 skill_context="ผู้ใช้กำลังสอนข้อมูลหรือกฎใหม่ บันทึกลงในความจำถาวรอย่างรอบคอบ",
                 reasoning="Explicit user instruction to remember a new rule/fact",
+                model_tier="medium",
+                model_override="gemini-3.6-flash",
             )
 
-        # 3. Realtime Research intent (Web search)
+        # 4. Realtime Research intent (Web search)
         is_research = allow_web and bool(
             re.search(r"ข่าววันนี้|ราคาทอง|ราคาน้ำมัน|สภาพอากาศวันนี้|เทรนด์วันนี้|ดราม่าล่าสุด|ค้นหาเว็บ|เสิร์ชหา", clean)
         )
@@ -84,10 +98,48 @@ class PersonaBrain:
                 allowed_tools=["search_web", "fetch_web_content"],
                 skill_context="ข้อมูลต้องการความสดใหม่แบบเรียลไทม์ ใช้ search_web เพื่อรวบรวมข้อเท็จจริง",
                 reasoning="Real-time news/prices/trends require web search",
+                model_tier="medium",
+                model_override="gemini-3.6-flash",
             )
 
-        # 4. Standard conversational cognition
+        # 5. Complex / Deep Reasoning Intent (Multi-line code, deep analysis, math)
+        is_complex = bool(
+            re.search(r"เขียนโค้ด|แก้โค้ด|เขียนโปรแกรม|แก้บั๊ก|วิเคราะห์เชิงลึก|สถาปัตยกรรมระบบ|คำนวณซับซ้อน|\b(write code|fix bug|debug|architecture|deep think)\b", clean, re.I)
+            or (len(clean) > 200 and any(w in clean for w in ["วิเคราะห์", "เปรียบเทียบ", "อธิบายเชิงลึก"]))
+        )
+        if is_complex:
+            allowed = [t for t in self.persona.config.allowed_tools if t not in ("search_web", "fetch_web_content")]
+            return BrainDecision(
+                persona_id=self.persona.id,
+                intent=IntentType.CHAT,
+                should_search=False,
+                allow_tools=bool(allowed),
+                allowed_tools=allowed,
+                skill_context="",
+                reasoning="Complex technical reasoning task, routed to deep thinking tier",
+                model_tier="deep",
+                model_override="gemini-3.5-flash",
+            )
+
+        # 6. Standard Conversational Cognition (Lite for short chitchat, Flash for explanations)
+        is_short_chitchat = (
+            len(clean) < 50
+            and not any(w in clean for w in ["ทำไม", "อย่างไร", "อธิบาย", "วิเคราะห์", "ประวัติ", "คืออะไร", "คือไร", "แปล", "สูตร", "แนะนำ"])
+        )
         allowed = [t for t in self.persona.config.allowed_tools if t not in ("search_web", "fetch_web_content")]
+        if is_short_chitchat:
+            return BrainDecision(
+                persona_id=self.persona.id,
+                intent=IntentType.CHAT,
+                should_search=False,
+                allow_tools=False,
+                allowed_tools=[],
+                skill_context="",
+                reasoning="Short chitchat/greeting, routed to ultra-fast lite tier (~1s)",
+                model_tier="low",
+                model_override="gemini-3.1-flash-lite-preview",
+            )
+
         return BrainDecision(
             persona_id=self.persona.id,
             intent=IntentType.CHAT,
@@ -95,5 +147,7 @@ class PersonaBrain:
             allow_tools=bool(allowed),
             allowed_tools=allowed,
             skill_context="",
-            reasoning="Normal conversational reasoning",
+            reasoning="Normal conversational reasoning, standard flash tier",
+            model_tier="medium",
+            model_override="gemini-3.6-flash",
         )

@@ -34,20 +34,23 @@ class MultiProviderRouter:
         temperature: float = 0.7,
         max_tokens: int = 1500,
         preferred_pool: str = "",
+        model_override: str = "",
+        model_tier: str = "medium",
     ) -> Optional[str]:
-        """Execute chat completion across active endpoints."""
+        """Execute chat completion across active endpoints with automatic failover."""
         candidates = [ep for ep in self.endpoints if ep.is_active]
         if preferred_pool:
             candidates.sort(key=lambda ep: 0 if ep.name == preferred_pool else 1)
 
         for ep in candidates:
+            target_model = model_override or ep.model
             try:
                 headers = {
                     "Authorization": f"Bearer {ep.api_key}",
                     "Content-Type": "application/json",
                 }
                 payload = {
-                    "model": ep.model,
+                    "model": target_model,
                     "messages": messages,
                     "temperature": temperature,
                     "max_tokens": max_tokens,
@@ -57,9 +60,10 @@ class MultiProviderRouter:
                     if resp.status_code == 200:
                         data = resp.json()
                         return data["choices"][0]["message"].get("content", "")
-                    logger.warning(f"Endpoint {ep.name} returned HTTP {resp.status_code}")
+                    logger.warning(f"Endpoint {ep.name} (model: {target_model}) returned HTTP {resp.status_code}")
             except Exception as err:
                 logger.warning(f"Endpoint {ep.name} call failed: {err}")
                 continue
 
         return None
+

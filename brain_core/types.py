@@ -52,6 +52,8 @@ class BrainDecision:
     allowed_tools: List[str] = field(default_factory=list)
     skill_context: str = ""
     reasoning: str = ""
+    model_tier: str = "medium"  # "low" (Lite/1s), "medium" (Flash/2s), "deep" (Reasoning/Co-Thinker)
+    model_override: str = ""
 
 
 @dataclass

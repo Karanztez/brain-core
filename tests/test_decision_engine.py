@@ -30,6 +30,30 @@ class TestDecisionEngine(unittest.TestCase):
         self.assertEqual(dec.intent, IntentType.RESEARCH)
         self.assertTrue(dec.should_search)
 
+    def test_code_review_priority_over_cipher(self):
+        # Even if code contains Base64 or Flag-like patterns, code review intent takes absolute priority
+        prompt = "ช่วยรีวิวโค้ดอันนี้ทีว่ามีบั๊กไหม\n```python\nSECRET = 'FLAG_0123456789abcdef0123456789'\n```"
+        dec = self.emi_brain.decide(prompt)
+        self.assertEqual(dec.intent, IntentType.CODE_REVIEW)
+        self.assertEqual(dec.model_tier, "deep")
+        self.assertIn("open_code_review", dec.allowed_tools)
+
+    def test_model_tier_assignment(self):
+        # Short chitchat -> low tier
+        dec_short = self.emi_brain.decide("สวัสดีตอนเช้า")
+        self.assertEqual(dec_short.model_tier, "low")
+        self.assertEqual(dec_short.model_override, "gemini-3.1-flash-lite-preview")
+
+        # Standard explanation -> medium tier
+        dec_med = self.emi_brain.decide("ช่วยอธิบายประวัติศาสตร์อยุธยาแบบละเอียดหน่อย")
+        self.assertEqual(dec_med.model_tier, "medium")
+        self.assertEqual(dec_med.model_override, "gemini-3.6-flash")
+
+        # Complex technical / deep architecture -> deep tier
+        dec_deep = self.emi_brain.decide("ช่วยออกแบบสถาปัตยกรรมระบบ Microservices พร้อมเขียนโค้ดตัวอย่าง")
+        self.assertEqual(dec_deep.model_tier, "deep")
+        self.assertEqual(dec_deep.model_override, "gemini-3.5-flash")
+
     def test_turn_arbitration(self):
         # 1. Direct name call to Emi
         should_emi = TurnEvaluator.should_bot_reply(
@@ -60,3 +84,4 @@ class TestDecisionEngine(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
