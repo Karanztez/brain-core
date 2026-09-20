@@ -57,28 +57,37 @@ def clean_text_for_speech(text: str, persona: str = "emi") -> str:
     # 2. Replace URLs with simple label
     clean = re.sub(r"https?://\S+", " ลิงก์แนบ ", clean)
 
-    # 3. Strip markdown syntax: bold, italic, strikethrough, headers, quotes, spoiler
+    # 3. Strip stage directions, inner thoughts, and roleplay actions in parentheses/brackets
+    # e.g. (เอมิสูดหายใจ...), (คิดในใจ...), 【ทำตาโต】, [กอดอก]
+    clean = re.sub(r"[\(\（\[【\{][^\)\）\]】\}]*[\)\）\]】\}]", " ", clean)
+
+    # 4. Strip markdown syntax: bold, italic, strikethrough, headers, quotes, spoiler
+    clean = re.sub(r"\*\*\*([^*]+)\*\*\*", r"\1", clean)
     clean = re.sub(r"\*\*([^*]+)\*\*", r"\1", clean)
-    clean = re.sub(r"\*([^*]+)\*", r"\1", clean)
     clean = re.sub(r"__([^_]+)__", r"\1", clean)
     clean = re.sub(r"~~([^~]+)~~", r"\1", clean)
     clean = re.sub(r"\|\|([^|]+)\|\|", r"\1", clean)
     clean = re.sub(r"^#{1,6}\s*", "", clean, flags=re.MULTILINE)
     clean = re.sub(r"^>\s*", "", clean, flags=re.MULTILINE)
     clean = re.sub(r"^[•\-\*]\s*", "", clean, flags=re.MULTILINE)
+    clean = re.sub(r"\*+", "", clean)
 
-    # 4. Remove laughs, emojis, and symbols that clutter TTS
+    # 5. Remove laughs, emojis, and symbols that clutter TTS
     clean = re.sub(r"(?:หุหุ~?|ฮ่าๆ?|อิอิ)", " ", clean)
-    clean = re.sub(r"[🥜☕✨💖🕶️📋📑📁🔍🕵️‍♀️🤪🚨]+", " ", clean)
+    clean = re.sub(r"[🥜☕✨💖🕶️📋📑📁🔍🕵️‍♀️🤪🚨🥺🎀🎉👍🔥💬🎮]+", " ", clean)
 
-    # 5. Remove Discord / platform mentions e.g. <@123456> or <#123456>
+    # 6. Remove Discord / platform mentions e.g. <@123456> or <#123456>
     clean = re.sub(r"<@[!&]?\d+>", "", clean)
     clean = re.sub(r"<#\d+>", "", clean)
 
-    # 6. Normalize whitespace
+    # 7. Normalize whitespace
     clean = re.sub(r"\s+", " ", clean).strip()
 
-    # 7. Truncate long responses to 800 characters for optimal sub-2s speech generation
+    # If all text was roleplay in parentheses and stripped away, fallback to cute speech
+    if not clean:
+        return "วากุวากุ!" if persona == "emi" else "ครับผม"
+
+    # 8. Truncate long responses to 800 characters for optimal sub-2s speech generation
     if len(clean) > 800:
         clean = clean[:790] + ("..." if clean[-1] not in ".!?" else "")
 

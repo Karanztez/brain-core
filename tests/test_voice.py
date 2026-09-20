@@ -39,6 +39,13 @@ class TestBrainCoreVoice(unittest.TestCase):
         cleaned_bo = clean_text_for_speech(raw, persona="bo")
         self.assertIn("มีโค้ดแนบมาในแชทครับ", cleaned_bo)
 
+    def test_strip_parentheses_and_roleplay_actions(self):
+        raw = "(เอมิสูดหายใจเข้าลึกๆ จนแก้มป่อง) วากุวากุ! หนูเอมิเองค่ะ (ทำตาโต)"
+        cleaned = clean_text_for_speech(raw, persona="emi")
+        self.assertNotIn("เอมิสูดหายใจ", cleaned)
+        self.assertNotIn("ทำตาโต", cleaned)
+        self.assertEqual(cleaned, "วากุวากุ! หนูเอมิเองค่ะ")
+
     def test_voice_profiles(self):
         self.assertIn("emi", VOICE_PROFILES)
         self.assertIn("bo", VOICE_PROFILES)

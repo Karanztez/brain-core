@@ -75,6 +75,13 @@ async def _call_fish_audio(
         "reference_id": reference_id,
         "format": "mp3",
         "latency": os.getenv("FISH_AUDIO_LATENCY", "low"),
+        "temperature": float(os.getenv("FISH_AUDIO_TEMPERATURE", "0.3")),
+        "normalize": True,
+        "prosody": {
+            "speed": float(os.getenv("FISH_AUDIO_SPEED", "0.95")),
+            "volume": 0.0,
+            "normalize_loudness": True,
+        },
     }
     async with _FISH_AUDIO_SEMAPHORE:
         async with httpx.AsyncClient(timeout=25.0) as client:
