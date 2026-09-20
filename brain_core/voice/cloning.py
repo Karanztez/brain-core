@@ -44,13 +44,34 @@ def prepare_thai_text_for_fish_audio(text: str) -> str:
     """Optimize Thai text phonetics, clause pacing, and vowel clarity for Fish Audio S2.1."""
     if not text:
         return text
-    # Expand maiyamok (ๆ) with clear separation so Fish Audio doesn't skip or slur the repetition
+
+    # 1. Expand maiyamok (ๆ) with clear separation so Fish Audio doesn't skip or slur the repetition
     cleaned = re.sub(r"(\S)ๆ", r"\1 \1", text)
-    # Ensure natural pauses before standard Thai particles (นะคะ, ค่ะ, ครับ, จ้า, นะ, หรอ) for clear vowel separation
+
+    # 2. Fix "เป็นไง" / "ยังไง" / "ไง" / "เป็นไหง" to phonetic "งัย"
+    # Eliminates the unwanted "ห นำ" (ไหง/เหน่อ) sound in Fish Audio
+    cleaned = re.sub(r"เป็น\s*ไหง", "เป็นงัย", cleaned)
+    cleaned = re.sub(r"เป็น\s*ไง", "เป็นงัย", cleaned)
+    cleaned = re.sub(r"ยัง\s*ไง", "ยังงัย", cleaned)
+    cleaned = re.sub(r"(?<=\s)ไง(?=[\s!?,\.คะครับจ้า]|$)", "งัย", cleaned)
+
+    # 3. Convert question particle "ไหม" / "มั้ย" to high-tone "มั๊ย"
+    # Prevents Fish Audio from reading "มั้ย" as slow formal rising "ไหม"
+    cleaned = re.sub(r"(?<=[\sก-๙])ไหม(?=[\s!?,\.คะครับจ้า]|$)(?![่-๋์])", "มั๊ย", cleaned)
+    cleaned = re.sub(r"(?<=[\sก-๙])มั้ย(?=[\s!?,\.คะครับจ้า]|$)(?![่-๋์])", "มั๊ย", cleaned)
+    cleaned = re.sub(r"^ไหม(?=[\s!?,\.คะครับจ้า]|$)(?![่-๋์])", "มั๊ย", cleaned)
+    cleaned = re.sub(r"^มั้ย(?=[\s!?,\.คะครับจ้า]|$)(?![่-๋์])", "มั๊ย", cleaned)
+
+    # 4. Ensure separation before "มั๊ย" if directly glued to preceding word
+    cleaned = re.sub(r"([^\s])มั๊ย", r"\1 มั๊ย", cleaned)
+
+    # 5. Ensure natural pauses before standard Thai particles (นะคะ, ค่ะ, ครับ, จ้า, นะ)
     cleaned = re.sub(r"([^\s])(นะคะ|นะค่ะ|ค่ะ|ครับ|จ้า|นะจ๊ะ|นะคะ!|ค่ะ!|ครับ!)", r"\1 \2", cleaned)
-    # Ensure natural pauses around punctuation and sentence boundaries
+
+    # 6. Ensure natural pauses around punctuation and sentence boundaries
     cleaned = re.sub(r"([!?,])(?=[^\s])", r"\1 ", cleaned)
-    # Normalize whitespace
+
+    # 7. Normalize whitespace
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
 
