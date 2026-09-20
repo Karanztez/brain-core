@@ -20,7 +20,14 @@ FISH_AUDIO_MODEL_ID = os.getenv("FISH_AUDIO_MODEL_ID", "")  # Anya Forger Model 
 FISH_AUDIO_MODEL = os.getenv("FISH_AUDIO_MODEL", "s2.1-pro-free")  # Free Tier S2.1 Pro Model
 
 # Concurrency limiter to strictly adhere to Fish Audio 5 concurrent requests limit (prevents 429 Too Many Requests)
-_FISH_AUDIO_SEMAPHORE = asyncio.Semaphore(5)
+_fish_audio_semaphore: Optional[asyncio.Semaphore] = None
+
+
+def _get_fish_audio_semaphore() -> asyncio.Semaphore:
+    global _fish_audio_semaphore
+    if _fish_audio_semaphore is None:
+        _fish_audio_semaphore = asyncio.Semaphore(5)
+    return _fish_audio_semaphore
 
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "")  # Anya Forger Voice ID
@@ -83,7 +90,7 @@ async def _call_fish_audio(
             "normalize_loudness": True,
         },
     }
-    async with _FISH_AUDIO_SEMAPHORE:
+    async with _get_fish_audio_semaphore():
         async with httpx.AsyncClient(timeout=25.0) as client:
             res = await client.post(url, headers=headers, json=payload)
             if res.status_code == 200 and len(res.content) > 1000:
