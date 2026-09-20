@@ -12,16 +12,20 @@
 1. **🎭 Decoupled Persona Cognition (`PersonaBrain`)**
    - แยกชุดความคิดและการตัดสินใจ (Intent Classification) ตามบริบทของแต่ละ Persona
    - กำหนดสิทธิ์เครื่องมือ (Tool Permissions), สรรพนาม, และข้อห้ามแยกเป็นรายตัวตน
-2. **🔄 Shared Channel Context Buffer (`ChannelContextBuffer`)**
+2. **⚡ Neural Cortex & Spreading Activation (`NeuralCortex`)**
+   - โครงข่ายเส้นประสาทสมองจำลองชีวภาพ (Major Trunks, Synapses, Spreading Activation)
+   - กระจายคลื่นสัญญาณประสาทตามค่าน้ำหนัก Synapse เพื่อดึงความจำ/ข้อเท็จจริงที่สัมพันธ์กันมาใช้อัตโนมัติ
+   - รองรับการแบ่งปันเส้นประสาทข้ามตัวตน (Shared Neural Cortex) และการเรียนรู้ปรับปรุงตนเอง (Synaptic Plasticity)
+3. **🔄 Shared Channel Context Buffer (`ChannelContextBuffer`)**
    - บัฟเฟอร์กิจกรรมส่วนกลางของช่องแชท ให้บอททุกตัวรับรู้คำถามและคำตอบของกันและกันแบบเรียลไทม์
    - ป้องกันการถามหาโจทย์ซ้ำ และช่วยให้บอทตัวที่สองสามารถรับลูกต่อจากบอทตัวแรกได้อย่างแนบเนียน
-3. **🛡️ Zero-Leak Redactor (`ZeroLeakRedactor`)**
+4. **🛡️ Zero-Leak Redactor (`ZeroLeakRedactor`)**
    - กรองและตัดชื่อโมเดล AI (เช่น `Gemini Vision`, `Gemini`, `GPT`, `Claude`) ออกจากข้อความและ Discord Embeds นอกโค้ดบล็อก
-4. **💬 Persona-Adaptive Fallbacks (`PersonaFallbackManager`)**
+5. **💬 Persona-Adaptive Fallbacks (`PersonaFallbackManager`)**
    - คืนค่าข้อความตอบสนองเมื่อเกิด Error / Timeout / Empty Response ตรงตามเพศและบุคลิกของบอท (โบ้ไม่หลุดพูด "ค่ะ", เอมิไม่หลุดพูด "ครับ")
-5. **⚖️ Multi-Agent Turn Arbitration (`TurnEvaluator`)**
+6. **⚖️ Multi-Agent Turn Arbitration (`TurnEvaluator`)**
    - ตัดสินใจว่าบอทตัวใดควรตอบในกรณีห้องส่วนตัว, ห้องประจำการร่วม (Shared Station), หรือการเรียกชื่อเจาะจง
-6. **🌐 Dual Mode: Python Library & REST API**
+7. **🌐 Dual Mode: Python Library & REST API**
    - ใช้งานเป็น Python Package (`import brain_core`) หรือรันเป็น HTTP Microservice ด้วย FastAPI
 
 ---

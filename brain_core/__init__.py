@@ -22,6 +22,10 @@ from brain_core.tools.router import PersonaToolRouter
 from brain_core.security.redactor import ZeroLeakRedactor
 from brain_core.providers.fallbacks import PersonaFallbackManager
 from brain_core.providers.router import MultiProviderRouter, ProviderEndpoint
+from brain_core.neural.neuron import MajorTrunk, NeuronNode, SynapseEdge, ActivationResult
+from brain_core.neural.cortex import NeuralCortex, create_standard_cortex
+from brain_core.neural.activation import SpreadingActivation
+from brain_core.neural.plasticity import SynapticPlasticity
 
 __version__ = "0.1.0"
 
@@ -46,4 +50,12 @@ __all__ = [
     "PersonaFallbackManager",
     "MultiProviderRouter",
     "ProviderEndpoint",
+    "MajorTrunk",
+    "NeuronNode",
+    "SynapseEdge",
+    "ActivationResult",
+    "NeuralCortex",
+    "create_standard_cortex",
+    "SpreadingActivation",
+    "SynapticPlasticity",
 ]
