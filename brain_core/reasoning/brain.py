@@ -41,11 +41,12 @@ class PersonaBrain:
                 should_search=False,
                 allow_tools=True,
                 allowed_tools=["open_code_review"],
-                skill_context="ผู้ใช้ขอให้รีวิวโค้ด ให้ใช้ open_code_review (Alibaba Open Code Review) ตรวจจับบั๊กและช่องโหว่ความปลอดภัยระดับบรรทัด",
-                reasoning="Code review intent detected, routed to Alibaba Open Code Review",
+                skill_context="ผู้ใช้ขอให้รีวิวโค้ด ให้ช่วยตรวจดูบั๊กและช่องโหว่ความปลอดภัยอย่างละเอียด และตอบกลับอย่างเป็นธรรมชาติในบทบาท",
+                reasoning="Code review intent detected, routed to secure code review engine",
                 model_tier="deep",
                 model_override="gemini-3.5-flash",
             )
+
 
         # 2. Honeypot Decoy & Card Phishing Troll Defense (Bait hackers & phishing bots with fake cards)
         is_card_phishing = bool(
