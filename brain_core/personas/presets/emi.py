@@ -24,7 +24,7 @@ EMI_CONFIG = PersonaConfig(
     rate_limit_fallback="❌ เซิร์ฟเวอร์ AI ยุ่งเกินไปค่ะ ลองใหม่อีกครั้งใน 10-30 วินาทีนะคะ",
     allowed_tools=[
         "search_web", "research_web", "fetch_web_content", "decode_inspect_data",
-        "wikihow_search", "wikihow_get_guide", "list_skills", "load_skill", "open_code_review"
+        "wikihow_search", "wikihow_get_guide", "list_skills", "load_skill", "open_code_review", "teach_persona"
     ],
     forbidden_terms=["ครับ", "เฮีย", "ฝ่ายประเด็น"],
 )

@@ -8,6 +8,21 @@
 
 **Brain-Core** คือระบบสมองกล AI กลาง (Cognition & Reasoning Core) สำหรับสถาปัตยกรรม **Multi-Persona / Multi-Agent** ที่ออกแบบมาเพื่อแยกตัวตน, การใช้เหตุผล, ความจำ, เครื่องมือ และการสวมบทบาทระหว่างบอทหลายตัว (เช่น **น้องเอมิ**, **เฮียโบ้** หรือบอทตัวใหม่ๆ) ออกจากกันอย่างเด็ดขาด ป้องกันการจำสลับตัวตน และมาพร้อมโครงข่ายประสาทสมองจำลองชีวภาพ (**Biomimetic Neural Cortex**) พร้อมระบบความปลอดภัย **Zero-Leak Redaction** ป้องกันชื่อโมเดล AI รั่วไหล 100%
 
+> ตั้งแต่ v0.2 Brain-Core เป็นเจ้าของวงจรความคิดทั้งหมด: **รับรู้ → เรียกคืนความจำ → ตัดสินใจ → เรียกโมเดล → ตรวจคำตอบ → บันทึกความจำ** โมเดลและฐานข้อมูลเป็น dependency ที่ถอดเปลี่ยนได้ ไม่ใช่เจ้าของตรรกะสมอง
+
+### สัญญาสถาปัตยกรรม v0.2
+
+```text
+Application → CognitiveEngine → ModelGateway (Gemini/Maxplus/อื่น ๆ)
+                         ↕
+                    MemoryStore (MongoDB/In-memory/อื่น ๆ)
+```
+
+- `CognitiveEngine` คุม persona, decision, context budget, validation และ memory consolidation
+- `ModelGateway` รับข้อความและแผนจากสมอง แล้วทำ inference เท่านั้น
+- `MemoryStore` ทำ durable recall/write โดยแยก `tenant/persona/user/channel` ป้องกันความจำข้ามคน
+- มี `RouterModelGateway`, `InMemoryStore` และ `MongoMemoryStore` (รองรับหลาย URI และ failover) เป็น implementation มาตรฐาน
+
 ---
 
 ## 🏛️ สถาปัตยกรรมระบบ (Architecture)
