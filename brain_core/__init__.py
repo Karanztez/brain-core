@@ -36,8 +36,11 @@ from brain_core.voice.tts import (
     VOICE_PROFILES,
 )
 from brain_core.voice.rvc import convert_to_anya_voice
+from brain_core.cognition import CognitiveEngine, CognitiveRequest, CognitiveResponse, MemoryContext, ModelRequest
+from brain_core.memory.store import InMemoryStore, MongoMemoryStore
+from brain_core.providers.gateway import RouterModelGateway
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "IntentType",
@@ -78,4 +81,12 @@ __all__ = [
     "generate_speech_file",
     "VOICE_PROFILES",
     "convert_to_anya_voice",
+    "CognitiveEngine",
+    "CognitiveRequest",
+    "CognitiveResponse",
+    "MemoryContext",
+    "ModelRequest",
+    "InMemoryStore",
+    "MongoMemoryStore",
+    "RouterModelGateway",
 ]
